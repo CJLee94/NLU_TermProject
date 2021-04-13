@@ -13,9 +13,9 @@ from pytorch_pretrained_bert import BertTokenizer
 
 
 class MultiNLIDataset(Dataset):
-	def __init__(self,root='/media/felicia/Data/multinli',matched=True,tokenized=True,max_length=12):
+	def __init__(self,root='/media/felicia/Data/{data}', data='multinli',matched=True,tokenized=True,max_length=12):
 		super(MultiNLIDataset,self).__init__()
-		self.root=root
+		self.root=root.format(data=data)
 		self.matched=matched
 		self.tokenized=tokenized
 		self.max_length=max_length
