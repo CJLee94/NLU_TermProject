@@ -12,17 +12,20 @@ import matplotlib.pyplot as plt
 from dataset_0412 import NLIDataset
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset_type', type=str, default="snli")
-parser.add_argument('--dataset_split', type=str,default="train")
+parser.add_argument('--dataset_type', type=str, default="multinli")
+parser.add_argument('--dataset_split', type=str,default="dev_matched")
 
 args = parser.parse_args()
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# n_gpu = torch.cuda.device_count()
+
 sentset = NLIDataset(data=args.dataset_type, split=args.dataset_split, tokenized=True,padding=False, truncation=False)
 
 BATCH = 1
-contentloader = torch.utils.data.DataLoader(sentset, batch_size=BATCH, shuffle=False, num_workers=4)
+contentloader = torch.utils.data.DataLoader(sentset, batch_size=BATCH, shuffle=False, num_workers=0)
 
 sent1_list=[]
 sent2_list=[]
