@@ -1,15 +1,12 @@
 import argparse
-import os
-import numpy as np
 from tqdm import tqdm
 
 import torch
-from torch.utils.data import Dataset, DataLoader
-from transformers import BertTokenizer
+from torch.utils.data import Dataset
 
 import matplotlib.pyplot as plt
 
-from dataset_0412 import NLIDataset
+from old_version.dataset_0412 import NLIDataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_type', type=str, default="multinli")
