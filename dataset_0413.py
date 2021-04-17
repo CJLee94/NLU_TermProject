@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import json
+import csv
 from tqdm import tqdm
 
 from collections import defaultdict
@@ -14,12 +15,17 @@ from transformers import BertForSequenceClassification, AlbertForSequenceClassif
 
 
 class NLIDataset(Dataset):
-    def __init__(self, root='/media/felicia/Data/{data}', data="multinli", split="train", type="Roberta",
+    def __init__(self, root='/media/felicia/Data/{data}', dataset="multinli", split="train", type="Roberta",
                  tokenizer=None,max_length=217):
         super(NLIDataset, self).__init__()
-        self.root = root.format(data=data)
-        self.jsonfile = "{}_1.0_{}.jsonl".format(data, split)  # change format if needed
-        self.filename = os.path.join(self.root, self.jsonfile)
+        self.dataset=dataset
+        self.split=split
+        self.root = root.format(data=self.dataset)
+        if self.dataset=="multinli" or self.dataset== "snli":
+            self.file = "{}_1.0_{}.jsonl".format(self.dataset, self.split)  # change format if needed
+        else:
+            self.file="{}.tsv".format(split)
+        self.filename = os.path.join(self.root, self.file)
         self.max_length = max_length
 
         self.num_labels = 3
@@ -27,7 +33,7 @@ class NLIDataset(Dataset):
             "entailment": 0,
             "neutral": 1,
             "contradiction": 2,
-            # "hidden": 0
+            "not_entailment": 1 # "qnli"
         }
         self.type = type
         if tokenizer is None:
@@ -45,16 +51,27 @@ class NLIDataset(Dataset):
 
     def load_data(self):
         with open(self.filename) as f:
-            for line in f:
-                example = json.loads(line)  # dict
-                self.data.append(example)
+            if self.dataset == "multinli" or self.dataset == "snli":
+                for line in f:
+                    example = json.loads(line)  # dict
+                    self.data.append(example)
+            else:
+                tsv=csv.DictReader(f,delimiter="\t")
+                for row in tsv:
+                    self.data.append(row)
         self.parseAll()
 
     def parseAll(self):
         for i, text in enumerate(self.data):
-            sent1 = text["sentence1"]
-            sent2 = text["sentence2"]
-            label = text["gold_label"]
+            if self.dataset=="multinli" or self.dataset=="snli":
+                sent1 = text["sentence1"]
+                sent2 = text["sentence2"]
+                label = text["gold_label"]
+            else:
+                sent1 = text["question"] # question
+                sent2 = text["sentence"] # sentence
+                label = "entailment" if self.split=="test" else text["label"]
+
             if label not in self.LABEL_MAP:
                 continue
 
@@ -69,7 +86,7 @@ class NLIDataset(Dataset):
 
     def albertConvertToFeatures(self):
         for idx in tqdm(range(len(self.labels))):
-            tokens_a = self.tokenizer.tokenize(self.sentences_a[idx])[:-1] # ?
+            tokens_a = self.tokenizer.tokenize(self.sentences_a[idx])[:-1] # remove .
             tokens_b = self.tokenizer.tokenize(self.sentences_b[idx])[:-1]
 
             self._truncate_seq_pair(tokens_a, tokens_b, self.max_length - 3)
@@ -100,8 +117,8 @@ class NLIDataset(Dataset):
 
     def robertaConvertToFeatures(self):
         for idx in tqdm(range(len(self.labels))):
-            tokens_a = self.tokenizer.tokenize(self.sentences_a[idx])
-            tokens_b = self.tokenizer.tokenize(self.sentences_b[idx])
+            tokens_a = self.tokenizer.tokenize(self.sentences_a[idx])[:-1]
+            tokens_b = self.tokenizer.tokenize(self.sentences_b[idx])[:-1]
 
             self._truncate_seq_pair(tokens_a, tokens_b, self.max_length - 3)
 
@@ -160,55 +177,46 @@ class NLIDataset(Dataset):
 
 if __name__ == "__main__":
     """
-    data="multinli"/"snli"  
+    dataset="multinli"/"snli" /"qnli"
     split=
         "train","dev_matched","dev_mismatched"
-        "train","test","dev" fo "snli"
-    tokenized=True(default) or False
-    padding= True or False(default)
-    max_length=12 (default)
+        "train","test","dev" fo "snli"/"qnli"
+    num_labels=3 for "multinli"/"snli"
+                2 for "qnli"
     """
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
     print("Number of GPU:",n_gpu)
 
-    BATCH = 4
+    BATCH = 8
 
     print("Data loading ...")
 
     ## tokenizer
     # BTokenizer=BertTokenizer.from_pretrained("bert-base-uncased")
-    # ATokenizer=AlbertTokenizer.from_pretrained("albert-base-v1")
-    RTokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+    ATokenizer=AlbertTokenizer.from_pretrained("albert-base-v1")
+    # RTokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 
-    # tokenid=BTokenizer.convert_tokens_to_ids("[CLS]") # 101
-    # tokenid=ATokenizer.convert_tokens_to_ids("[CLS]") # 2
-    # tokenid=RTokenizer.convert_tokens_to_ids("[CLS]") # 3
-    #
-    # tokenid=BTokenizer.convert_tokens_to_ids("[SEP]") # 102
-    # tokenid=ATokenizer.convert_tokens_to_ids("[SEP]") # 3
-    # tokenid=RTokenizer.convert_tokens_to_ids("[SEP]") # 3
+    albert_data = NLIDataset(type="albert",tokenizer=ATokenizer,dataset="qnli", split="train", max_length=217)
+    # roberta_data = NLIDataset(type="roberta", tokenizer=RTokenizer, dataset="snli", split="test", max_length=217)
 
-    # albert_data = NLIDataset(type="albert",tokenizer=ATokenizer,data="multinli", split="dev_matched", max_length=10)
-    roberta_data = NLIDataset(type="roberta", tokenizer=RTokenizer, data="snli", split="test", max_length=10)
-
-    # albert_dataloader = DataLoader(albert_data, batch_size=BATCH, shuffle=True)
-    roberta_dataloader = DataLoader(roberta_data, batch_size=BATCH, shuffle=True)
+    albert_dataloader = DataLoader(albert_data, batch_size=BATCH, shuffle=False)
+    # roberta_dataloader = DataLoader(roberta_data, batch_size=BATCH, shuffle=True)
 
     ## model
     # model=BertForSequenceClassification.from_pretrained("bert-base-uncased")
-    # model = AlbertForSequenceClassification.from_pretrained("albert-base-v1",num_labels=3 ,return_dict=False)
-    model = RobertaForSequenceClassification.from_pretrained("roberta-base",num_labels=3,return_dict=False)
+    model = AlbertForSequenceClassification.from_pretrained("albert-base-v1",num_labels=2 ,return_dict=False)
+    # model = RobertaForSequenceClassification.from_pretrained("roberta-base",num_labels=3,return_dict=False)
 
     model.to(device)
     if n_gpu > 1:
         model = torch.nn.DataParallel(model)
 
-    # print("Transfomer: Albert")
-    print("Transfomer: RoBERTa")
+    print("Transfomer: Albert")
+    # print("Transfomer: RoBERTa")
 
-    for idx, batch in tqdm(enumerate(roberta_dataloader)):
+    for idx, batch in tqdm(enumerate(albert_dataloader)):
         batch = tuple(t.to(device) for t in batch)
         input_ids, input_mask, segment_ids, label_ids = batch
 
@@ -220,9 +228,8 @@ if __name__ == "__main__":
         # print(label_ids.size())  # tensor: b
 
 
-        tmp_ids=torch.tensor([[0 for x in range(10)]]).to(device)
-        # loss, logits = model(input_ids, attention_mask=input_mask,token_type_ids=segment_ids,labels=label_ids) # Albert
-        loss, logits = model(input_ids, attention_mask=input_mask,labels=label_ids) # Roberta
+        loss, logits = model(input_ids, attention_mask=input_mask,token_type_ids=segment_ids,labels=label_ids) # Albert
+        # loss, logits = model(input_ids, attention_mask=input_mask,labels=label_ids) # Roberta
 
 
         print(loss)
