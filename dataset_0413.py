@@ -183,6 +183,8 @@ if __name__ == "__main__":
         "train","test","dev" fo "snli"/"qnli"
     num_labels=3 for "multinli"/"snli"
                 2 for "qnli"
+                
+    Change dataset folder to multinli"/"snli" /"qnli"
     """
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
