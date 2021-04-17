@@ -111,9 +111,9 @@ class NLIDataset(Dataset):
             assert len(segment_ids) == self.max_length
 
             self.features["input_ids"].append(input_ids)
-            self.features["input_mask"].append(input_mask)
-            self.features["segment_ids"].append(segment_ids)
-            self.features["label_id"].append(self.labels[idx])
+            self.features["attention_mask"].append(input_mask)
+            self.features["token_type_ids"].append(segment_ids)
+            self.features["label"].append(self.labels[idx])
 
     def robertaConvertToFeatures(self):
         for idx in tqdm(range(len(self.labels))):
@@ -143,9 +143,9 @@ class NLIDataset(Dataset):
             assert len(segment_ids) == self.max_length
 
             self.features["input_ids"].append(input_ids)
-            self.features["input_mask"].append(input_mask)
-            self.features["segment_ids"].append(segment_ids)
-            self.features["label_id"].append(self.labels[idx])
+            self.features["attention_mask"].append(input_mask)
+            self.features["token_type_ids"].append(segment_ids)
+            self.features["label"].append(self.labels[idx])
 
     def _truncate_seq_pair(self, tokens_a, tokens_b, max_length):
         """Truncates a sequence pair in place to the maximum length."""
@@ -165,9 +165,9 @@ class NLIDataset(Dataset):
 
     def __getitem__(self, index):
         input_ids = self.features["input_ids"][index]
-        input_mask = self.features["input_mask"][index]
-        segment_ids = self.features["segment_ids"][index]
-        label_ids = self.features["label_id"][index]
+        input_mask = self.features["attention_mask"][index]
+        segment_ids = self.features["token_type_ids"][index]
+        label_ids = self.features["label"][index]
 
         return torch.tensor(input_ids), torch.tensor(input_mask), torch.tensor(segment_ids), torch.tensor(label_ids)
 

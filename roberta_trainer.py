@@ -1,32 +1,45 @@
 from datasets import load_dataset, load_metric
 import transformers
-from transformers import AlbertForSequenceClassification, AutoTokenizer, TrainingArguments, Trainer
+from transformers import RobertaForSequenceClassification, AutoTokenizer, TrainingArguments, Trainer
 import torch
 import numpy as np
 
 
-def albert_trainer():
+def roberta_trainer(dataset_type="mnli"):
     # load the dataset and metric
-    dataset = load_dataset("glue", 'mnli')
-    metric = load_metric('glue', 'mnli')
+    num_labels = 3
+    if dataset_type=="qnli":
+        num_labels=2
+
+    # if dataset_type == "snli":
+    #     dataset = load_dataset(dataset_type)
+    #     metric = load_metric("squad_v2")
+
+    dataset = load_dataset("glue", dataset_type)
+    metric = load_metric("glue", dataset_type)
 
     # load the tokenizer
-    tokenizer = AutoTokenizer.from_pretrained('albert-base-v2', use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
 
     # define a pretrain method
     def preprocess_function(examples):
-        return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+        if dataset_type=="mnli":
+            return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+        elif dataset_type=="rte":
+            return tokenizer(examples["sentence1"], examples["sentence2"], truncation=True)
+        elif dataset_type=="qnli":
+            return tokenizer(examples["question"], examples["sentence"], truncation=True)
 
     # preprocess the data
     encoded_dataset = dataset.map(preprocess_function, batched=True)
 
     # load the model
-    model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=3)
+    model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels=num_labels)
 
     # set all the training parameter
-    batch_size = 16
+    batch_size = 8
     args = TrainingArguments(
-        "test-glue",
+        "roberta-{}-train".format(dataset_type),
         evaluation_strategy="epoch",
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
@@ -45,11 +58,12 @@ def albert_trainer():
         return metric.compute(predictions=predictions, references=labels)
 
     # initialize trainer
+    validation_key="validation_matched" if dataset_type=="mnli" else "validation"
     trainer = Trainer(
         model,
         args,
         train_dataset=encoded_dataset["train"],
-        eval_dataset=encoded_dataset['validation_matched'],
+        eval_dataset=encoded_dataset[validation_key],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics
     )
@@ -65,4 +79,4 @@ def albert_trainer():
 
 
 if __name__ == '__main__':
-    albert_trainer()
+    roberta_trainer(dataset_type="mnli")
