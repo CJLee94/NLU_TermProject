@@ -61,7 +61,7 @@ def albert_trainer(dataset_type="mnli"):
    ## SGD + onecycle
     opt=torch.optim.SGD(
         model.parameters(),
-        lr=0.01 , #0.01 --> 1e-5 ?
+        lr=1e-5, #0.01 --> 1e-5 ?
         momentum=0.9,
         # weight_decay=1e-4,
         # dampening=0,
