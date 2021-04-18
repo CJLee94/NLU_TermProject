@@ -84,7 +84,7 @@ def albert_trainer(dataset_type="mnli"):
     # )
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         opt,
-        max_lr= 5e-5,  #0.1 --> 0.0001 ?
+        max_lr= 2e-5,  #0.1 --> 0.0001 ?
         # total_steps=5,
         epochs=5,
         steps_per_epoch=steps_per_epoch,
