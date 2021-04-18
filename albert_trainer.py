@@ -3,7 +3,6 @@ from transformers import AlbertForSequenceClassification, AutoTokenizer, Trainin
 import torch
 import numpy as np
 
-
 def albert_trainer(dataset_type="mnli"):
     # load the dataset and metric
     num_labels = 3
@@ -54,12 +53,41 @@ def albert_trainer(dataset_type="mnli"):
         metric_for_best_model='accuracy',
     )
 
+
     opt=torch.optim.SGD(
         model.parameters(),
-        lr=0.1,
-        weight_decay=1e-4,
+        lr=0.01,
+        momentum=0.9,
+        # weight_decay=1e-4,
+        # dampening=0,
         nesterov=True
     )
+
+    steps_per_epoch=int(len(dataset["train"])//batch_size+1)
+
+    # lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
+    #     optimizer=opt,
+    #     lr_lambda= [lambda epoch:epoch],
+    #     last_epoch=-1,
+    #     verbose=True
+    # )
+
+
+    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     opt,
+    #     mode='max',
+    #     verbose=True,
+    # )
+    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        opt,
+        max_lr=0.1,
+        # total_steps=5,
+        epochs=5,
+        steps_per_epoch=steps_per_epoch,
+        pct_start= 6/(5*steps_per_epoch)  #0.02
+    )
+
+
 
     # define a metric function
     def compute_metrics(eval_pred):
@@ -77,11 +105,11 @@ def albert_trainer(dataset_type="mnli"):
         eval_dataset=encoded_dataset[validation_key],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
-        optimizers=opt
+        optimizers=(opt,lr_scheduler)
     )
 
     # train
-    # trainer.train()
+    trainer.train()
 
     # evaluate
     result = trainer.evaluate()
