@@ -1,5 +1,4 @@
 from datasets import load_dataset, load_metric
-import transformers
 from transformers import AlbertForSequenceClassification, AutoTokenizer, TrainingArguments, Trainer
 import torch
 import numpy as np
@@ -46,7 +45,9 @@ def albert_trainer(dataset_type="mnli"):
         per_device_eval_batch_size=batch_size,
         num_train_epochs=5,
         weight_decay=0.01,
-        load_best_model_at_end=True,
+        save_steps=1000,
+        save_total_limit=50,
+        load_best_model_at_end=False,
         metric_for_best_model='accuracy',
     )
 
