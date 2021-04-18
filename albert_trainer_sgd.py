@@ -40,7 +40,7 @@ def albert_trainer(dataset_type="mnli"):
     # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
 
     # set all the training parameter
-    batch_size = 32
+    batch_size = 4
 
     # Default: AdamW
     args = TrainingArguments(
@@ -84,11 +84,13 @@ def albert_trainer(dataset_type="mnli"):
     # )
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         opt,
-        max_lr= 0.0001,  #0.1 --> 0.0001 ?
+        max_lr= 5e-5,  #0.1 --> 0.0001 ?
         # total_steps=5,
         epochs=5,
         steps_per_epoch=steps_per_epoch,
-        pct_start= 6/(5*steps_per_epoch)  #0.02
+        pct_start= 0.02,  #0.02
+        div_factor=25, # init_lit=max_lr/div_factor
+        final_div_factor=10 # min_lr=init_lit/final_div_factor
     )
 
 
