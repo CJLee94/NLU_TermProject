@@ -37,7 +37,7 @@ def roberta_trainer(dataset_type="mnli"):
     model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels=num_labels)
 
     # set all the training parameter
-    batch_size =4
+    batch_size =32
     args = TrainingArguments(
         "roberta-{}-train".format(dataset_type),
         evaluation_strategy="epoch",
