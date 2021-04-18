@@ -46,15 +46,49 @@ def albert_trainer(dataset_type="mnli"):
     args = TrainingArguments(
         "albert-{}-train".format(dataset_type),
         evaluation_strategy="epoch",
-        learning_rate=2e-5,
+        # learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         num_train_epochs=5,
-        weight_decay=0.01,
+        # weight_decay=0.01,
         save_steps=5000,
         save_total_limit=10,
         load_best_model_at_end=True,
         metric_for_best_model='accuracy',
+    )
+
+
+   ## SGD + onecycle
+    opt=torch.optim.SGD(
+        model.parameters(),
+        lr=0.01 , #0.01 --> 1e-5 ?
+        momentum=0.9,
+        # weight_decay=1e-4,
+        # dampening=0,
+        nesterov=True
+    )
+
+    steps_per_epoch=int(len(dataset["train"])//batch_size+1)
+
+    # lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
+    #     optimizer=opt,
+    #     lr_lambda= [lambda epoch:epoch],
+    #     last_epoch=-1,
+    #     verbose=True
+    # )
+
+    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     opt,
+    #     mode='max',
+    #     verbose=True,
+    # )
+    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        opt,
+        max_lr= 0.0001,  #0.1 --> 0.0001 ?
+        # total_steps=5,
+        epochs=5,
+        steps_per_epoch=steps_per_epoch,
+        pct_start= 6/(5*steps_per_epoch)  #0.02
     )
 
 
@@ -74,6 +108,7 @@ def albert_trainer(dataset_type="mnli"):
         eval_dataset=encoded_dataset[validation_key],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
+        optimizers=(opt,lr_scheduler)
     )
 
     # train
