@@ -47,7 +47,7 @@ def albert_trainer(dataset_type="mnli"):
         weight_decay=0.01,
         save_steps=5000,
         save_total_limit=10,
-        load_best_model_at_end=False,
+        load_best_model_at_end=True,
         metric_for_best_model='accuracy',
     )
 
