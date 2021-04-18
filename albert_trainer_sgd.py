@@ -40,7 +40,7 @@ def albert_trainer(dataset_type="mnli"):
     # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
 
     # set all the training parameter
-    batch_size = 4
+    batch_size =32
 
     # Default: AdamW
     args = TrainingArguments(
@@ -88,7 +88,7 @@ def albert_trainer(dataset_type="mnli"):
         # total_steps=5,
         epochs=5,
         steps_per_epoch=steps_per_epoch,
-        pct_start= 0.02,  #0.02
+        pct_start= 0.2,
         div_factor=25, # init_lit=max_lr/div_factor
         final_div_factor=10 # min_lr=init_lit/final_div_factor
     )
