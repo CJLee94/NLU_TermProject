@@ -44,7 +44,7 @@ def albert_trainer(dataset_type="mnli"):
 
     # Default: AdamW
     args = TrainingArguments(
-        "albert-{}-train".format(dataset_type),
+        "albert-{}-train_1".format(dataset_type),
         evaluation_strategy="epoch",
         # learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
