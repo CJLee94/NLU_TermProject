@@ -6,14 +6,14 @@ import os
 import torch
 import torch.nn as nn
 
-from transformers.file_utils import is_sagemaker_mp_enabled, is_apex_available
+from transformers.file_utils import is_apex_available
 from transformers import Trainer
 from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
 
-if is_sagemaker_mp_enabled():
-    from transformers.trainer_pt_utils import smp_forward_backward
+#if is_sagemaker_mp_enabled():
+#    from transformers.trainer_pt_utils import smp_forward_backward
 
 if version.parse(torch.__version__) >= version.parse("1.6"):
     _is_native_amp_available = True
@@ -28,7 +28,7 @@ class ALBERTTrainer(Trainer):
         super().__init__(**kwargs)
         if aum:
             self.aum = torch.zeros((len(self.train_dataset), self.args.num_train_epochs))
-            self.epoch_counting = torch.zeros((len(self.train_dataset),))
+            self.epoch_counting = torch.zeros((len(self.train_dataset),), dtype=torch.int8)
         else:
             self.aum = None
 
@@ -73,9 +73,9 @@ class ALBERTTrainer(Trainer):
         model.train()
         inputs = self._prepare_inputs(inputs)
 
-        if is_sagemaker_mp_enabled():
-            loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
-            return loss_mb.reduce_mean().detach().to(self.args.device)
+ #       if is_sagemaker_mp_enabled():
+ #           loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
+ #           return loss_mb.reduce_mean().detach().to(self.args.device)
 
         if self.use_amp:
             with autocast():
@@ -109,6 +109,7 @@ class ALBERTTrainer(Trainer):
 
         Subclass and override for custom behavior.
         """
+
         if self.label_smoother is not None and "labels" in inputs:
             labels = inputs.pop("labels")
         else:
@@ -116,8 +117,8 @@ class ALBERTTrainer(Trainer):
         indices = inputs.pop("idx")
         outputs = model(**inputs)
 
-        if self.aum:
-            self.compute_aum(indices, outputs, labels)
+        if self.aum is not None:
+            self.compute_aum(indices, outputs, inputs)
 
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
@@ -132,11 +133,16 @@ class ALBERTTrainer(Trainer):
 
         return (loss, outputs) if return_outputs else loss
 
-    def compute_aum(self, indices, outputs, labels):
-        outputs_c = outputs.copy()
-        assigned_logit = outputs[:, labels]
-        outputs_c[:, labels] = torch.tensor(-float("inf"), device=outputs_c.device)
-        largest_other = outputs_c.max(-1)
-        self.aum[indices] = assigned_logit - largest_other
+    def compute_aum(self, indices, outputs, inputs):
+        self.aum = self.aum.to(indices.device)
+        self.epoch_counting = self.epoch_counting.to(indices.device)
+        outputs_c = outputs["logits"].clone()
+        labels = inputs["labels"]
+        assigned_logit = outputs["logits"][range(len(labels)),labels] 
+        outputs_c[range(len(labels)), labels] = torch.tensor(-float("inf"), device=outputs_c.device)
+        largest_other = outputs_c.max(-1)[0]
+        self.aum[indices, self.epoch_counting[indices].long()] = assigned_logit - largest_other
         self.epoch_counting[indices] += 1
+        #import pdb
+        #pdb.set_trace()
         torch.save(self.aum, os.path.join(self.args.output_dir, "aum.pt"))
