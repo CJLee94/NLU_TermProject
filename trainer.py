@@ -70,6 +70,7 @@ def albert_trainer(dataset_type="mnli"):
     # initialize trainer
     validation_key = "validation_matched" if dataset_type == "mnli" else "validation"
     trainer = ALBERTTrainer(
+        aum=True,
         model=model,
         args=args,
         train_dataset=encoded_dataset["train"],
