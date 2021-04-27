@@ -3,9 +3,9 @@ from transformers import AlbertForSequenceClassification, AutoTokenizer
 from transformers import TrainingArguments
 import numpy as np
 from utils import ALBERTTrainer
+import argparse
 
-
-def albert_trainer(dataset_type="mnli"):
+def albert_trainer(dataset_type="mnli", aum=False):
     # load the dataset and metric
     num_labels = 3
     if dataset_type == "qnli":
@@ -22,6 +22,10 @@ def albert_trainer(dataset_type="mnli"):
     tokenizer = AutoTokenizer.from_pretrained('albert-base-v2', use_fast=True)
 
     # define a pretrain method
+
+    if aum:
+        flip_samples = np.random
+
     def preprocess_function(examples):
         if dataset_type == "mnli" or dataset_type == "snli":
             feature = tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
@@ -70,7 +74,7 @@ def albert_trainer(dataset_type="mnli"):
     # initialize trainer
     validation_key = "validation_matched" if dataset_type == "mnli" else "validation"
     trainer = ALBERTTrainer(
-        aum=True,
+        aum=aum,
         model=model,
         args=args,
         train_dataset=encoded_dataset["train"],
@@ -94,5 +98,9 @@ if __name__ == "__main__":
     dataset_type: "mnli" , "rte"(Todo: "snli"), "qnli"
     P.S. "rte" is too small, glue does not include "snli"
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--dataset", help="dataset to use", type = str, default="qnli")
+    parser.add_argument("-a", "--aum", help="whether to enable aum", action="store_true")
+    args = parser.parse_args()
 
-    albert_trainer(dataset_type="qnli")
+    albert_trainer(dataset_type=args.dataset, aum = args.aum)

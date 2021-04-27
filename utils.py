@@ -6,6 +6,8 @@ import os
 import torch
 import torch.nn as nn
 
+from aum import AUMCalculator
+
 from transformers.file_utils import is_apex_available
 from transformers import Trainer
 from transformers.utils import logging
@@ -27,8 +29,9 @@ class ALBERTTrainer(Trainer):
     def __init__(self, aum=False, **kwargs):
         super().__init__(**kwargs)
         if aum:
-            self.aum = torch.zeros((len(self.train_dataset), self.args.num_train_epochs))
+            self.aum = torch.zeros((len(self.train_dataset),))
             self.epoch_counting = torch.zeros((len(self.train_dataset),), dtype=torch.int8)
+        #    self.aum = AUMCalculator(self.args.output_dir, compressed=False)
         else:
             self.aum = None
 
@@ -118,6 +121,7 @@ class ALBERTTrainer(Trainer):
         outputs = model(**inputs)
 
         if self.aum is not None:
+            #records = self.aum.update(outputs["logits"], inputs["labels"], indices)
             self.compute_aum(indices, outputs, inputs)
 
         # Save past state if it exists
@@ -141,8 +145,6 @@ class ALBERTTrainer(Trainer):
         assigned_logit = outputs["logits"][range(len(labels)),labels] 
         outputs_c[range(len(labels)), labels] = torch.tensor(-float("inf"), device=outputs_c.device)
         largest_other = outputs_c.max(-1)[0]
-        self.aum[indices, self.epoch_counting[indices].long()] = assigned_logit - largest_other
+        self.aum[indices] = assigned_logit - largest_other
         self.epoch_counting[indices] += 1
-        #import pdb
-        #pdb.set_trace()
-        torch.save(self.aum, os.path.join(self.args.output_dir, "aum.pt"))
+        torch.save(self.aum, os.path.join(self.args.output_dir, "aum_{}.pt".format(self.epoch_counting.min().item())))
