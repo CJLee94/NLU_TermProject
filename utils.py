@@ -6,7 +6,7 @@ import os
 import torch
 import torch.nn as nn
 
-from aum import AUMCalculator
+# from aum import AUMCalculator
 
 from transformers.file_utils import is_apex_available
 from transformers import Trainer
