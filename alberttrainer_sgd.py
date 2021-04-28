@@ -12,6 +12,7 @@ import json
 
 def albert_trainer(dataset_type="mnli", aum=True, flip=True):
     out_dir = "albert-{}-train-{}-{}".format(dataset_type, aum, flip)
+    os.makedirs(out_dir, exist_ok=True)
 
     # load the dataset and metric
     num_labels = 3
