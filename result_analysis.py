@@ -7,10 +7,12 @@ import os
 
 # plt.ion()
 
-out_dir = "albert-qnli-train"
+out_dir = "albert-mnli-train-True-True"
+total_epoch = 7
+
 aum = []
 
-for i in range(16):
+for i in range(total_epoch):
     aum.append(torch.load(os.path.join(out_dir, "aum_{}.pt".format(i))).detach().cpu().numpy())
 
 aum = np.array(aum)
@@ -44,7 +46,7 @@ axepoch = plt.axes([0.125, 0.1, 0.78, 0.03])
 epochslider = Slider(ax=axepoch,
                      label="Epoch",
                      valmin=0,
-                     valmax=15,
+                     valmax=total_epoch,
                      valinit=0)
 
 # def renew_freq()
