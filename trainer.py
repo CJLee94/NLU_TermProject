@@ -1,57 +1,106 @@
-import torch
+from datasets import load_dataset, load_metric
+from transformers import AlbertForSequenceClassification, AutoTokenizer
+from transformers import TrainingArguments
+import numpy as np
+from utils import ALBERTTrainer
+import argparse
 
-class Trainer:
-    def __init__(self, cfg):
-        self.tr_data, self.ts_data = get_dataset(cfg.DATASET)
-        self.model = get_model(cfg.MODEL)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.n_gpu = torch.cuda.device_count()
-        self.epoch = cfg.TRAIN.EPOCH
-        self.model.to(self.device)
+def albert_trainer(dataset_type="mnli", aum=False):
+    # load the dataset and metric
+    num_labels = 3
+    if dataset_type == "qnli":
+        num_labels = 2
 
-        if self.n_gpu > 1:
-            self.model = torch.nn.DataParallel(self.model)
+    # if dataset_type == "snli":
+    #     dataset = load_dataset(dataset_type)
+    #     metric = load_metric("squad_v2")
 
-        param_optimizer = list(self.model.named_parameters())
+    dataset = load_dataset("glue", dataset_type)
+    metric = load_metric("glue", dataset_type)
 
-        self.optimizer = get_optimizer(param_optimizer, cfg.OPTIMIZER)
+    # load the tokenizer
+    tokenizer = AutoTokenizer.from_pretrained('albert-base-v2', use_fast=True)
 
-        self.tr_loader = Dataloader(self.dataset, sampler=train_sampler, batch_size=cfg.DATASET.BATCHSIZE)
+    # define a pretrain method
 
-    def train(self):
-        global_step = 0
-        nb_tr_step = 0
-        for e in range(int(self.epoch)):
-            tr_loss = 0.0
-            nb_tr_examples, nb_tr_steps = 0, 0
-            for step, batch in enumerate(self.tr_dataloader):
-                batch = tuple(t.to(self.device) for t in batch)
-                input_ids, input_mask, segment_ids, label_ids = batch
-                loss = self.model(input_ids, segment_ids, input_mask, label_ids)
+    if aum:
+        flip_samples = np.random
 
-                loss.backward()
+    def preprocess_function(examples):
+        if dataset_type == "mnli" or dataset_type == "snli":
+            feature = tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+        elif dataset_type == "rte":
+            feature = tokenizer(examples["sentence1"], examples["sentence2"], truncation=True)
+        elif dataset_type == "qnli":
+            feature = tokenizer(examples["question"], examples["sentence"], truncation=True)
+        feature["idx"] = examples["idx"]
+        return feature
 
-                tr_loss += loss.item()
-                nb_tr_examples += input_ids.size(0)
-                nb_tr_steps += 1
+    # preprocess the data
+    encoded_dataset = dataset.map(preprocess_function, batched=True)
 
-                self.optimizer.step()
-                self.optimizer.zero_grad()
-                global_step += 1
+    # load the model
+    model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels)
 
-                if (step + 1) % 20 == 0:
-                    print(tr_loss / nb_tr_steps / nb_tr_examples)
-                    tr_loss = 0
-                    nb_tr_examples, nb_tr_steps = 0, 0
+    # ckpt_path="/media/felicia/Data/albert-{}-train/checkpoint-15000/".format(dataset_type)
+    # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
 
-            self.valid()
+    # set all the training parameter
+    batch_size = 32
 
-    def valid(self):
-        for step, batch in enumerate(self.ts_dataloader):
-            batch = tuple(t.to(self.device) for t in batch)
-            input_ids, input_mask, segment_ids, label_ids = batch
-            loss = self.model(input_ids, segment_ids, input_mask, label_ids)
+    # Default: AdamW
+    args = TrainingArguments(
+        "albert-{}-train".format(dataset_type),
+        evaluation_strategy="epoch",
+        learning_rate=2e-5,
+        per_device_train_batch_size=batch_size,
+        per_device_eval_batch_size=batch_size,
+        num_train_epochs=5,
+        weight_decay=0.01,
+        save_steps=5000,
+        save_total_limit=10,
+        load_best_model_at_end=True,
+        metric_for_best_model='accuracy',
+    )
 
 
+    # define a metric function
+    def compute_metrics(eval_pred):
+        predictions, labels = eval_pred
+        predictions = np.argmax(predictions, axis=1)
+
+        return metric.compute(predictions=predictions, references=labels)
+
+    # initialize trainer
+    validation_key = "validation_matched" if dataset_type == "mnli" else "validation"
+    trainer = ALBERTTrainer(
+        aum=aum,
+        model=model,
+        args=args,
+        train_dataset=encoded_dataset["train"],
+        eval_dataset=encoded_dataset[validation_key],
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
+    )
+
+    # train
+    trainer.train()
+
+    # evaluate
+    result = trainer.evaluate()
+
+    # print the result
+    print(result)
 
 
+if __name__ == "__main__":
+    """
+    dataset_type: "mnli" , "rte"(Todo: "snli"), "qnli"
+    P.S. "rte" is too small, glue does not include "snli"
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--dataset", help="dataset to use", type = str, default="qnli")
+    parser.add_argument("-a", "--aum", help="whether to enable aum", action="store_true")
+    args = parser.parse_args()
+
+    albert_trainer(dataset_type=args.dataset, aum = args.aum)
