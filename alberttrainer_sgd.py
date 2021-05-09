@@ -100,15 +100,16 @@ def albert_trainer(dataset_type="mnli", aum=True, flip=True):
 
     # set all the training parameter
     batch_size = 32
+    num_epochs = 90
 
     # Default: AdamW
     args = TrainingArguments(
         out_dir,
         evaluation_strategy="epoch",
-        learning_rate=2e-5,
+        learning_rate=1e-4,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
-        num_train_epochs=45,
+        num_train_epochs=num_epochs,
         weight_decay=0.01,
         save_steps=5000,
         save_total_limit=10,
@@ -117,8 +118,9 @@ def albert_trainer(dataset_type="mnli", aum=True, flip=True):
     )
     
     steps_per_epoch = int(len(dataset["train"])//batch_size+1)
-    opt = torch.optim.SGD(model.parameters(), lr=2e-5, momentum=0.9, nesterov=True)
-    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=5e-5, epochs=45, steps_per_epoch=steps_per_epoch, pct_start = 0.01, div_factor=25, final_div_factor=10)
+    opt = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9, nesterov=True)
+    #lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=5e-5, epochs=45, steps_per_epoch=steps_per_epoch, pct_start = 0.01, div_factor=25, final_div_factor=10)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
 
     # define a metric function
     def compute_metrics(eval_pred):
