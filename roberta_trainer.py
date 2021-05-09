@@ -56,12 +56,12 @@ def roberta_trainer(dataset_type="mnli"):
         metric_for_best_model='accuracy',
     )
 
-    opt=torch.optim.SGD(
-        model.parameters(),
-        lr=0.1,
-        weight_decay=1e-4,
-        nesterov=True
-    )
+    # opt=torch.optim.SGD(
+    #     model.parameters(),
+    #     lr=0.1,
+    #     weight_decay=1e-4,
+    #     nesterov=True
+    # )
 
     # define a metric function
     def compute_metrics(eval_pred):
@@ -79,7 +79,7 @@ def roberta_trainer(dataset_type="mnli"):
         eval_dataset=encoded_dataset[validation_key],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
-        optimizers=opt
+        # optimizers=opt
     )
 
     # train

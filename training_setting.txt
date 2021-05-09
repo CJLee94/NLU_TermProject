@@ -1,0 +1,32 @@
+1. Alerbt on QNLI
+
+optimizer: AdamW
+initial learning rate: 2e-5
+scheduler:transformers.get_linear_schedule_with_warmup as default
+Follow the default args in TrainerArgument:
+-lr_scheduler_type="linear" (default)
+see https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments
+scheduler rule: as default
+batch size:32
+pretrained model:albert-base-v2
+
+2. roberta on mnli
+
+optimizer: AdamW
+initial learning rate: 2e-5
+scheduler:transformers.get_linear_schedule_with_warmup as default
+Follow the default args in TrainerArgument:
+-lr_scheduler_type="linear" (default)
+see https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments
+scheduler rule: as default
+batch size:32
+pretrained model:roberta-base
+
+Evaluation:
+1. Alerbt on QNLI
+5 epoch
+eval accuracy=0.9138
+
+2. roberta on mnli
+5 epoch
+eval accuracy=0.875
