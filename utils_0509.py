@@ -176,10 +176,10 @@ class ALBERTTrainer(Trainer):
             # filter the data
             # if self.current_epoch == self.end_epoch and self.filter:
 
-            current_epoch=self.current_step*self.args.per_device_train_batch_size/len(self.train_dataset)
+            current_epoch=self.current_step*self.args.per_device_train_batch_size//len(self.train_dataset)
             self.current_step+=1
 
-            if int(current_epoch*100) == self.end_epoch and self.filter:
+            if current_epoch == self.end_epoch and self.filter:
                 aum_scores=self.aum[self.flip_index].cpu().detach().numpy()
                 threshold = np.quantile(aum_scores, 0.99)
 
