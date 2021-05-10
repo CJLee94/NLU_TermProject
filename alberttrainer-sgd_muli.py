@@ -52,12 +52,13 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
 
     # set all the training parameter
     batch_size = 32
+    num_epochs = 90
 
     # Default: AdamW
     args = TrainingArguments(
         out_dir,
         evaluation_strategy="epoch",
-        learning_rate=2e-5,
+        learning_rate=1e-4,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         num_train_epochs=7,
