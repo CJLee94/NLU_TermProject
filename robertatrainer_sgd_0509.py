@@ -1,5 +1,5 @@
 from datasets import load_dataset, load_metric
-from transformers import AlbertForSequenceClassification, AutoTokenizer
+from transformers import RobertaForSequenceClassification, AutoTokenizer
 from transformers import TrainingArguments
 import numpy as np
 from utils_0509 import ALBERTTrainer
@@ -45,7 +45,7 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
     encoded_trainset, encoded_evalset = encode_dataset(dataset, tokenizer, num_labels, flip_index, dataset_type)
 
     # load the model
-    model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels + 1)
+    model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels=num_labels + 1)
 
     # ckpt_path="/media/felicia/Data/albert-{}-train/checkpoint-15000/".format(dataset_type)
     # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
@@ -90,7 +90,7 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
     trainer = ALBERTTrainer(
         flip_index=flip_index,
         aum=aum,
-        end_epoch=end_epoch,
+        end_epoch=end_epoch, # albert: 7
         filter=True,
         flip_name=flip_name,
         model=model,
@@ -111,7 +111,7 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
 
 
 def albert_trainer(dataset_type="mnli", aum=True, filter=True,end_epoch=7):
-    out_dir = "albert-{}-train-{}-filter-{}-{}".format(dataset_type, aum, filter,end_epoch)
+    out_dir = "roberta-{}-train-{}-filter-{}".format(dataset_type, aum, filter)
     os.makedirs(out_dir, exist_ok=True)
 
     # load the dataset and metric
@@ -174,7 +174,7 @@ def albert_trainer(dataset_type="mnli", aum=True, filter=True,end_epoch=7):
             json.dump(flip_index_2, fp)
 
     # load the tokenizer
-    tokenizer = AutoTokenizer.from_pretrained('albert-base-v2', use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
 
     # filter two the dataset two times
     # I don't know what or why result need to be print
@@ -194,8 +194,10 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dataset", help="dataset to use", default="mnli",type = str)
     parser.add_argument("-a", "--aum", help="whether to enable aum", default=True,action="store_true")
     parser.add_argument("-s", "--syn", help="whether to flip some of the labels",default=True, action="store_true")
+
     args = parser.parse_args()
 
+    end_epoch=7
     print(args)
 
-    albert_trainer(dataset_type=args.dataset, aum=args.aum, filter=True, end_epoch=7)
+    albert_trainer(dataset_type=args.dataset, aum=args.aum, filter=True,end_epoch=end_epoch)

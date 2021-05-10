@@ -99,7 +99,7 @@ def albert_trainer(dataset_type="mnli", aum=True, flip=True):
     # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
 
     # set all the training parameter
-    batch_size = 32
+    batch_size = 8
 
     # Default: AdamW
     args = TrainingArguments(
@@ -159,5 +159,5 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--aum", help="whether to enable aum", action="store_true")
     parser.add_argument("-s", "--syn", help="whether to flip some of the labels", action="store_true")
     args = parser.parse_args()
-
+    print(args)
     albert_trainer(dataset_type=args.dataset, aum=args.aum, flip=args.syn)

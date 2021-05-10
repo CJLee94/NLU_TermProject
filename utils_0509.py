@@ -2,6 +2,7 @@ from typing import Optional, Dict, Union, Any
 import inspect
 from packaging import version
 import os
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -31,9 +32,11 @@ class ALBERTTrainer(Trainer):
     def __init__(self, flip_index, aum=False, end_epoch=7, filter=False, flip_name='1', **kwargs):
         super().__init__(**kwargs)
         self.end_epoch = end_epoch
-        self.current_epoch = 0
+        # self.current_epoch = 0
+        self.current_step=0
         self.flip_index = flip_index
         self.filter = filter
+        self.filter_set="train"
         self.flip_name = flip_name
         if aum:
             self.aum = torch.zeros((len(self.train_dataset),))
@@ -83,14 +86,21 @@ class ALBERTTrainer(Trainer):
         model.train()
         inputs = self._prepare_inputs(inputs)
 
+
         # if is_sagemaker_mp_enabled():
         # loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
         # return loss_mb.reduce_mean().detach().to(self.args.device)
         if self.use_amp:
             with autocast():
-                loss = self.compute_loss(model, inputs)
+                loss, outputs= self.compute_loss(model, inputs,return_outputs=True)
         else:
-            loss = self.compute_loss(model, inputs)
+            loss, outputs = self.compute_loss(model, inputs,return_outputs=True)
+
+
+        ## don't put compute aum in compute_loss, eval step also use compute_loss
+        # if self.aum is not None:
+        #     #records = self.aum.update(outputs["logits"], inputs["labels"], indices)
+        #     self.compute_aum(indices, outputs, inputs)
 
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
@@ -123,8 +133,12 @@ class ALBERTTrainer(Trainer):
             labels = inputs.pop("labels")
         else:
             labels = None
+
+        # if "idx" in inputs:
+        #     indices = inputs.pop("idx")
         indices = inputs.pop("idx")
         outputs = model(**inputs)
+
 
         if self.aum is not None:
             #records = self.aum.update(outputs["logits"], inputs["labels"], indices)
@@ -144,28 +158,41 @@ class ALBERTTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
     def compute_aum(self, indices, outputs, inputs):
-        self.current_epoch += 1
+        # self.current_epoch += 1
 
-        self.aum = self.aum.to(indices.device)
-        self.epoch_counting = self.epoch_counting.to(indices.device)
-        outputs_c = outputs["logits"].clone()
-        labels = inputs["labels"]
-        assigned_logit = outputs["logits"][range(len(labels)),labels] 
-        outputs_c[range(len(labels)), labels] = torch.tensor(-float("inf"), device=outputs_c.device)
-        largest_other = outputs_c.max(-1)[0]
-        self.aum[indices] = assigned_logit - largest_other
-        self.epoch_counting[indices] += 1
-        torch.save(self.aum, os.path.join(self.args.output_dir, "aum_{}.pt".format(self.epoch_counting.min().item())))
+        if self.filter_set=="train":
 
-        # filter the data
-        if self.current_epoch == self.end_epoch and self.filter:
-            threshold = np.quantile(self.aum[self.flip_index], 0.99)
-            remove_index = []
-            for i in range(len(self.aum)):
-                if i in self.flip_index:
-                    continue;
-                elif self.aum[i] < threshold:
-                    remove_index.append(i)
-            save_dir = os.path.join(self.args.output_dir, "filtered_index_" + self.flip_name + ".txt")
-            with open(save_dir, "r") as fp:
-                json.dump(remove_index, fp)
+            self.aum = self.aum.to(indices.device)
+            self.epoch_counting = self.epoch_counting.to(indices.device)
+            outputs_c = outputs["logits"].clone()
+            labels = inputs["labels"]
+            assigned_logit = outputs["logits"][range(len(labels)),labels]
+            outputs_c[range(len(labels)), labels] = torch.tensor(-float("inf"), device=outputs_c.device)
+            largest_other = outputs_c.max(-1)[0]
+            self.aum[indices] = assigned_logit - largest_other
+            self.epoch_counting[indices] += 1
+            torch.save(self.aum, os.path.join(self.args.output_dir, "aum_{}.pt".format(self.epoch_counting.min().item())))
+
+            # filter the data
+            # if self.current_epoch == self.end_epoch and self.filter:
+
+            current_epoch=self.current_step*self.args.per_device_train_batch_size/len(self.train_dataset)
+            self.current_step+=1
+
+            if int(current_epoch*100) == self.end_epoch and self.filter:
+                aum_scores=self.aum[self.flip_index].cpu().detach().numpy()
+                threshold = np.quantile(aum_scores, 0.99)
+                # print(self.flip_name,self.current_step,current_epoch,threshold)
+                remove_index = []
+                if self.flip_name!='1':
+                    for i in tqdm(range(len(self.aum))):
+                        if i in self.flip_index:
+                            continue
+                        elif self.aum[i] < threshold:
+                            remove_index.append(i)
+                    save_dir = os.path.join(self.args.output_dir, "filtered_index_{}.txt".format(self.flip_name))
+                    with open(save_dir, "w") as fp:
+                        json.dump(remove_index, fp)
+
+                self.current_step=0 # reset for eval set
+                self.filter_set="done"
