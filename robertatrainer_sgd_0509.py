@@ -111,7 +111,7 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
 
 
 def albert_trainer(dataset_type="mnli", aum=True, filter=True,end_epoch=7):
-    out_dir = "roberta-{}-train-{}-filter-{}".format(dataset_type, aum, filter)
+    out_dir = "roberta-{}-train-{}-filter-{}-{}".format(dataset_type, aum, filter,end_epoch)
     os.makedirs(out_dir, exist_ok=True)
 
     # load the dataset and metric
