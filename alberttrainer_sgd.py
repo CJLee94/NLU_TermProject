@@ -120,7 +120,9 @@ def albert_trainer(dataset_type="mnli", aum=True, flip=True):
     steps_per_epoch = int(len(dataset["train"])//batch_size+1)
     opt = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9, nesterov=True)
     #lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=5e-5, epochs=45, steps_per_epoch=steps_per_epoch, pct_start = 0.01, div_factor=25, final_div_factor=10)
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+    #lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+    lam = lambda epoch: 1
+    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=lam)
 
     # define a metric function
     def compute_metrics(eval_pred):
