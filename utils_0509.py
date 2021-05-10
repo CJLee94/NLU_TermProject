@@ -171,7 +171,7 @@ class ALBERTTrainer(Trainer):
             largest_other = outputs_c.max(-1)[0]
             self.aum[indices] = assigned_logit - largest_other
             self.epoch_counting[indices] += 1
-            torch.save(self.aum, os.path.join(self.args.output_dir, "aum_{}.pt".format(self.epoch_counting.min().item())))
+            torch.save(self.aum, os.path.join(self.args.output_dir, "aum_{}_{}.pt".format(self.flip_name,self.epoch_counting.min().item())))
 
             # filter the data
             # if self.current_epoch == self.end_epoch and self.filter:
