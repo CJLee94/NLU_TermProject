@@ -182,17 +182,16 @@ class ALBERTTrainer(Trainer):
             if int(current_epoch*100) == self.end_epoch and self.filter:
                 aum_scores=self.aum[self.flip_index].cpu().detach().numpy()
                 threshold = np.quantile(aum_scores, 0.99)
-                # print(self.flip_name,self.current_step,current_epoch,threshold)
+
                 remove_index = []
-                if self.flip_name!='1':
-                    for i in tqdm(range(len(self.aum))):
-                        if i in self.flip_index:
-                            continue
-                        elif self.aum[i] < threshold:
-                            remove_index.append(i)
-                    save_dir = os.path.join(self.args.output_dir, "filtered_index_{}.txt".format(self.flip_name))
-                    with open(save_dir, "w") as fp:
-                        json.dump(remove_index, fp)
+                for i in tqdm(range(len(self.aum))):
+                    if i in self.flip_index:
+                        continue
+                    elif self.aum[i] < threshold:
+                        remove_index.append(i)
+                save_dir = os.path.join(self.args.output_dir, "filtered_index_{}.txt".format(self.flip_name))
+                with open(save_dir, "w") as fp:
+                    json.dump(remove_index, fp)
 
                 self.current_step=0 # reset for eval set
                 self.filter_set="done"
