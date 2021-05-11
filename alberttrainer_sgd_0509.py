@@ -45,10 +45,10 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
     encoded_trainset, encoded_evalset = encode_dataset(dataset, tokenizer, num_labels, flip_index, dataset_type)
 
     # load the model
-    ckpt_path="/scratch/sz2257/{}/checkpoint-24544/".format(out_dir)
-    model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels + 1)
+    # ckpt_path="/scratch/sz2257/{}/checkpoint-24544/".format(out_dir)
+    # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels + 1)
 
-    # model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels + 1)
+    model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels + 1)
 
 
     # set all the training parameter
