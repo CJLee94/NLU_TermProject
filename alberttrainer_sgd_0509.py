@@ -52,7 +52,7 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
 
 
     # set all the training parameter
-    batch_size = 4 #default:32
+    batch_size = 32 #default:32
 
     # print("Flip {} Train dataset size {}".format(flip_name,len(dataset["train"])))
     print("Flip {} Encoded train dataset size {}".format(flip_name,len(encoded_trainset)))
