@@ -45,13 +45,13 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
     encoded_trainset, encoded_evalset = encode_dataset(dataset, tokenizer, num_labels, flip_index, dataset_type)
 
     # load the model
-    model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels + 1)
+    # model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels + 1)
 
-    # ckpt_path="/media/felicia/Data/albert-{}-train/checkpoint-15000/".format(dataset_type)
-    # model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
+    ckpt_path="/scratch/sz2257/{}/checkpoint-24544/".format(out_dir)
+    model = AlbertForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
 
     # set all the training parameter
-    batch_size = 32 #default:32
+    batch_size = 4 #default:32
 
     # print("Flip {} Train dataset size {}".format(flip_name,len(dataset["train"])))
     print("Flip {} Encoded train dataset size {}".format(flip_name,len(encoded_trainset)))
@@ -76,7 +76,7 @@ def filter_dataset(out_dir, dataset, metric, tokenizer, num_labels, flip_index, 
     opt = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9, nesterov=True) # default lr: 2e-5 (sgd-onecycleLR)
 
     # TODO change the scheduler
-    steps_per_epoch = int(len(dataset["train"]) // batch_size + 1)
+    # steps_per_epoch = int(len(dataset["train"]) // batch_size + 1)
     # lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=5e-5, epochs=7, steps_per_epoch=steps_per_epoch,
     #                                                    pct_start=0.01, div_factor=25, final_div_factor=10)
 
@@ -163,6 +163,7 @@ def albert_trainer(dataset_type="mnli", aum=True, filter=True,end_epoch=7):
                 q = flips_in_class_2[c] / samples_in_class_2[c]
             else:
                 q = 0
+            print(p,q)
             indicator = np.random.choice([0, 1, 2], p=[1 - p - q, p, q])
             if indicator == 1:
                 flip_index_1.append(trainset[i]["idx"])
