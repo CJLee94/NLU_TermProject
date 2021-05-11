@@ -44,7 +44,7 @@ def albert_trainer(dataset_type="mnli"):
 
     # Default: AdamW
     args = TrainingArguments(
-        "albert-{}-train".format(dataset_type),
+        "albert-{}-train-baseline".format(dataset_type),
         evaluation_strategy="epoch",
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
@@ -92,10 +92,11 @@ if __name__ == "__main__":
     P.S. "rte" is too small, glue does not include "snli"
     """
 
-    albert_trainer(dataset_type="qnli")
+    albert_trainer(dataset_type="mnli")
 
 """"
-albert-base-v2:
+#qnli
+albert-base-v2: 
 {'eval_loss': 0.7939354777336121, 'eval_accuracy': 0.5053999633900788, 
 'eval_runtime': 29.1222, 'eval_samples_per_second': 187.589, 
 'init_mem_cpu_alloc_delta': 1843462144, 'init_mem_gpu_alloc_delta': 46745088, '
