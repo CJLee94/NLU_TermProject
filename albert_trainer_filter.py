@@ -26,8 +26,8 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
 
     ## data filtering
-    # aum_dir = "/scratch/sz2257/{}-aum".format('albert')
-    aum_dir = "/media/felicia/Data/aum_results/aum/{}-aum".format('albert')
+    aum_dir = "/scratch/sz2257/{}-aum".format('albert')
+    # aum_dir = "/media/felicia/Data/aum_results/aum/{}-aum".format('albert')
 
     aum_1 = torch.load(os.path.join(aum_dir, "aum_1_6.pt"), map_location=torch.device('cpu')).detach().numpy()
     aum_2 = torch.load(os.path.join(aum_dir, "aum_2_6.pt"), map_location=torch.device('cpu')).detach().numpy()
@@ -67,7 +67,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
     # t1, t2, union_list, intersection_list=filter_data(threshold=threshold)
 
-    with open(os.path.join("/media/felicia/Data/aum_results/aum", "{}-{}_aum.json".format('albert', 'mnli')), "r") as f:
+    with open(os.path.join(aum_dir, "{}-{}_aum.json".format('albert', 'mnli')), "r") as f:
         aum_filter=json.load(f)
     union_list=aum_filter[str(threshold)]['union']
 
