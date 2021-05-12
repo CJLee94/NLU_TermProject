@@ -16,7 +16,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
         num_labels = 2
 
 
-    train_set = load_dataset("glue", dataset_type)
+    dataset = load_dataset("glue", dataset_type)
 
     ## data filtering
     aum_dir = "/scratch/sz2257/{}-aum".format('albert')
@@ -57,8 +57,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
         return t1, t2, union_list, intersection_list
 
     t1, t2, union_list, intersection_list=filter_data(threshold=threshold)
-    remain_data = list(set(range(len(train_set))) - set(union_list))
-    dataset = train_set[remain_data]
+
 
     print("train dataset size: {} / {}".format(len(dataset),len(train_set)))
 
@@ -78,6 +77,9 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
     # preprocess the data
     encoded_dataset = dataset.map(preprocess_function, batched=True)
+    train_set=encoded_dataset["train"]
+    remain_data = list(set(range(len(train_set))) - set(union_list))
+    train_set_filtered = train_set[remain_data]
 
     # load the model
     model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels)
@@ -113,7 +115,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
     trainer = Trainer(
         model,
         args,
-        train_dataset=encoded_dataset["train"],
+        train_dataset=train_set_filtered,
         eval_dataset=encoded_dataset[validation_key],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
