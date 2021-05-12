@@ -147,8 +147,9 @@ def filter_data(threshold = 0.99):
 
 # human_filtered[85, 122, 128, 140, 149, 291, 320]
 
-# remain_data = list(set(range(len(train_set))) - set(filtered_data))
-# train_set = train_set[remain_data]
+t1, t2, union_list, intersection_list=filter_data(threshold=0.99)
+remain_data = list(set(range(len(train_set))) - set(union_list))
+train_set = train_set[remain_data]
 
 
 ## try different thresholds
