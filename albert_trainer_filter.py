@@ -22,7 +22,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
     dataset = load_dataset("glue", dataset_type)
 
     # set all the training parameter
-    batch_size = 16
+    batch_size = 32
 
 
     ## data filtering
