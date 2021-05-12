@@ -37,60 +37,22 @@ def roberta_trainer(dataset_type="mnli",threshold=0.99):
     ## data filtering
     aum_dir = "/scratch/sz2257/{}-aum".format('roberta')
 
-    aum_1 = torch.load(os.path.join(aum_dir, "aum_1_6.pt"), map_location=torch.device('cpu')).detach().numpy()
-    aum_2 = torch.load(os.path.join(aum_dir, "aum_2_6.pt"), map_location=torch.device('cpu')).detach().numpy()
-
-    with open(os.path.join(aum_dir, 'flip_index_1.json')) as fp:
-        flip_index_1 = json.load(fp)
-    with open(os.path.join(aum_dir, 'flip_index_2.json')) as fp:
-        flip_index_2 = json.load(fp)
-
-    def filter_data(threshold=0.99):
-        t1 = np.quantile(aum_1[flip_index_1], threshold)
-        t2 = np.quantile(aum_2[flip_index_2], threshold)
-
-        filter_list_1 = []
-        filter_list_2 = []
-
-        for i in tqdm(range(len(aum_1))):
-            if aum_1[i] < t1:
-                if i in flip_index_1:
-                    pass
-                else:
-                    filter_list_1.append(i)
-
-            if aum_2[i] < t2:
-                if i in flip_index_2:
-                    pass
-                else:
-                    filter_list_2.append(i)
-            # if aum_1[i] < t1 and aum_2[i] < t2:
-            # filter_list.append(i)
-
-        # union_list = np.unique(filter_list) #
-        union_list = list(set().union(filter_list_1, filter_list_2))
-        intersection_list = list(set(filter_list_1).intersection(filter_list_2))
-
-        return t1, t2, union_list, intersection_list
-
-    # t1, t2, union_list, intersection_list=filter_data(threshold=threshold)
-
-    with open(os.path.join(aum_dir, "{}-{}_aum.json".format('roberta', 'mnli')), "r") as f:
+    with open(os.path.join(aum_dir, "{}-{}_aum_0512.json".format('roberta', 'mnli')), "r") as f:
         aum_filter = json.load(f)
-    union_list = aum_filter[str(threshold)]['union']
+    filtered_list = aum_filter[str(threshold)]['intersection']
 
     train_set=encoded_dataset["train"]
-    remain_data = list(set(range(len(train_set))) - set(union_list))
+    remain_data = list(set(range(len(train_set))) - set(filtered_list))
     train_set_filtered = train_set.filter(lambda item: item["idx"] in remain_data)
 
-    print(len(union_list),len(remain_data))
+    print(len(filtered_list),len(remain_data))
     print("train dataset size: {} / {}".format(len(train_set),len(train_set_filtered)))
 
 
     # set all the training parameter
     batch_size =32
     args = TrainingArguments(
-        "roberta-{}-{:.2f}-train-filtered".format(dataset_type,threshold),
+        "roberta-{}-{:.2f}-train-filtered-0512".format(dataset_type,threshold),
         evaluation_strategy="epoch",
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
