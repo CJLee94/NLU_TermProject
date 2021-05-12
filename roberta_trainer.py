@@ -34,22 +34,22 @@ def roberta_trainer(dataset_type="mnli"):
     encoded_dataset = dataset.map(preprocess_function, batched=True)
 
     # load the model
-    # model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels=num_labels)
 
-    ckpt_path="/media/felicia/Data/roberta-{}-train/checkpoint-60000/".format(dataset_type)
-    model = RobertaForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
+    # ckpt_path="/media/felicia/Data/roberta-{}-train/checkpoint-60000/".format(dataset_type)
+    # model = RobertaForSequenceClassification.from_pretrained(ckpt_path, num_labels=num_labels)
 
+    model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels=num_labels)
 
     # set all the training parameter
     batch_size =32
     args = TrainingArguments(
-        "roberta-{}-train".format(dataset_type),
+        "roberta-{}-train-baseline".format(dataset_type),
         evaluation_strategy="epoch",
-        # learning_rate=2e-5,
+        learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         num_train_epochs=5,
-        # weight_decay=0.01,
+        weight_decay=0.01,
         save_steps=5000,
         save_total_limit=10,
         load_best_model_at_end=True,
@@ -79,7 +79,6 @@ def roberta_trainer(dataset_type="mnli"):
         eval_dataset=encoded_dataset[validation_key],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
-        # optimizers=opt
     )
 
     # train
@@ -93,7 +92,7 @@ def roberta_trainer(dataset_type="mnli"):
 
 
 if __name__ == '__main__':
-    roberta_trainer(dataset_type="mnli")
+    roberta_trainer(dataset_type="qnli")
 
 """"
 roberta-base:mnli
