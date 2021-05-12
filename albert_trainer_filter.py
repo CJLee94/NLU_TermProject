@@ -3,11 +3,14 @@ from transformers import AlbertForSequenceClassification, AutoTokenizer
 from transformers import TrainingArguments, Trainer
 from transformers import AdamW
 import torch
+from torch.utils.data import Subset
 import numpy as np
 import argparse
 import json
 import os
 from tqdm import tqdm
+
+from torch.utils.data.sampler import SubsetRandomSampler
 
 def albert_trainer(dataset_type="mnli", threshold=0.99):
     # load the dataset and metric
@@ -18,8 +21,14 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
     dataset = load_dataset("glue", dataset_type)
 
+    # set all the training parameter
+    batch_size = 16
+
+
     ## data filtering
-    aum_dir = "/scratch/sz2257/{}-aum".format('albert')
+    # aum_dir = "/scratch/sz2257/{}-aum".format('albert')
+    aum_dir = "/media/felicia/Data/aum_results/aum/{}-aum".format('albert')
+
     aum_1 = torch.load(os.path.join(aum_dir, "aum_1_6.pt"), map_location=torch.device('cpu')).detach().numpy()
     aum_2 = torch.load(os.path.join(aum_dir, "aum_2_6.pt"), map_location=torch.device('cpu')).detach().numpy()
 
@@ -56,9 +65,11 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
         return t1, t2, union_list, intersection_list
 
-    t1, t2, union_list, intersection_list=filter_data(threshold=threshold)
+    # t1, t2, union_list, intersection_list=filter_data(threshold=threshold)
 
-
+    with open(os.path.join("/media/felicia/Data/aum_results/aum", "{}-{}_aum.json".format('albert', 'mnli')), "r") as f:
+        aum_filter=json.load(f)
+    union_list=aum_filter[str(threshold)]['union']
 
     metric = load_metric("glue", dataset_type)
 
@@ -76,17 +87,20 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
     # preprocess the data
     encoded_dataset = dataset.map(preprocess_function, batched=True)
+    validation_key = "validation_matched" if dataset_type == "mnli" else "validation"
+
     train_set=encoded_dataset["train"]
     remain_data = list(set(range(len(train_set))) - set(union_list))
-    train_set_filtered = train_set[remain_data]
+
+    train_set_filtered = train_set.filter(lambda item: item["idx"] in remain_data)
+
+    print(len(union_list),len(remain_data))
     print("train dataset size: {} / {}".format(len(train_set),len(train_set_filtered)))
 
 
     # load the model
     model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels)
 
-    # set all the training parameter
-    batch_size = 32
 
     # Default: AdamW
     args = TrainingArguments(
@@ -112,7 +126,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
         return metric.compute(predictions=predictions, references=labels)
 
     # initialize trainer
-    validation_key = "validation_matched" if dataset_type == "mnli" else "validation"
+
     trainer = Trainer(
         model,
         args,
