@@ -59,7 +59,6 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
     t1, t2, union_list, intersection_list=filter_data(threshold=threshold)
 
 
-    print("train dataset size: {} / {}".format(len(dataset),len(train_set)))
 
     metric = load_metric("glue", dataset_type)
 
@@ -80,6 +79,8 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
     train_set=encoded_dataset["train"]
     remain_data = list(set(range(len(train_set))) - set(union_list))
     train_set_filtered = train_set[remain_data]
+    print("train dataset size: {} / {}".format(len(train_set),len(train_set_filtered)))
+
 
     # load the model
     model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=num_labels)
