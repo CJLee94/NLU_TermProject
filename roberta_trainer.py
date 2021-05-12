@@ -96,7 +96,7 @@ if __name__ == '__main__':
     roberta_trainer(dataset_type="mnli")
 
 """"
-roberta-base:
+roberta-base:mnli
 {'eval_loss': 1.100448489189148, 'eval_accuracy': 0.3273560876209883, 'eval_runtime': 38.7856, 
 'eval_samples_per_second': 253.058, 'init_mem_cpu_alloc_delta': 1499799552, 
 'init_mem_gpu_alloc_delta': 499890176, 'init_mem_cpu_peaked_delta': 380596224, 'init_mem_gpu_peaked_delta': 0, 
