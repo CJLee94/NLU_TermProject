@@ -90,7 +90,7 @@ def roberta_trainer(dataset_type="mnli",threshold=0.99):
     # set all the training parameter
     batch_size =32
     args = TrainingArguments(
-        "roberta-{}-train".format(dataset_type),
+        "roberta-{}-{:.2f}-train-filtered".format(dataset_type,threshold),
         evaluation_strategy="epoch",
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
