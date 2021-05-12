@@ -31,7 +31,7 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
 
     with open(os.path.join(aum_dir, "{}-{}_aum_0512.json".format('albert', 'mnli')), "r") as f:
         aum_filter=json.load(f)
-    union_list=aum_filter[str(threshold)]['union']
+    filtered_list=aum_filter[str(threshold)]['intersection']
 
     metric = load_metric("glue", dataset_type)
 
@@ -52,11 +52,11 @@ def albert_trainer(dataset_type="mnli", threshold=0.99):
     validation_key = "validation_matched" if dataset_type == "mnli" else "validation"
 
     train_set=encoded_dataset["train"]
-    remain_data = list(set(range(len(train_set))) - set(union_list))
+    remain_data = list(set(range(len(train_set))) - set(filtered_list))
 
     train_set_filtered = train_set.filter(lambda item: item["idx"] in remain_data)
 
-    print(len(union_list),len(remain_data))
+    print(len(filtered_list),len(remain_data))
     print("train dataset size: {} / {}".format(len(train_set),len(train_set_filtered)))
 
 
